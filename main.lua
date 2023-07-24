@@ -101,7 +101,7 @@ function love.draw()
     fill_grid(grid,50,50)
 
     make_triangle(points[1],points[2],points[3],nil,function(x,y,u,v)
-        local tex_x,tex_y = math.floor(u*image_w)%image_w,math.floor(v*image_h)%image_h
+        local tex_x,tex_y = math.ceil(u*(image_w-1)-0.5)%image_w,math.ceil(v*(image_h-1)-0.5)%(image_h-1)
         local r,g,b,a = image:getPixel(tex_x,tex_y)
 
         --local u,v = unmake_uv(u,v)
@@ -110,7 +110,7 @@ function love.draw()
         set_grid(grid,x+1,y+1,{r,g,b})
     end)
     make_triangle(points[2],points[3],points[4],nil,function(x,y,u,v)
-        local tex_x,tex_y = math.floor(u*image_w)%image_w,math.floor(v*image_h)%image_h
+        local tex_x,tex_y = math.ceil(u*(image_w-1)-0.5)%image_w,math.ceil(v*(image_h-1)-0.5)%(image_h-1)
         local r,g,b,a = image:getPixel(tex_x,tex_y)
 
         --local u,v = unmake_uv(u,v)
