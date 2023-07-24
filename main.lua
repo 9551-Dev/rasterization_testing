@@ -4,7 +4,7 @@ local block_size = 10
 local border_thickness = 2
 
 local function draw_block(x,y,color)
-    love.graphics.setColor(color[1],color[2],color[3])
+    love.graphics.setColor(color[1],color[2],color[3],color[4])
     for block_x=(x-1)*block_size,(x-1)*block_size+block_size do
         for block_y=(y-1)*block_size,(y-1)*block_size+block_size do
             love.graphics.points(block_x+border_thickness-1,block_y+border_thickness-1)
@@ -22,6 +22,10 @@ local function draw_block(x,y,color)
     for block_x=(x-1)*block_size,(x-1)*block_size+block_size,border_thickness do
         love.graphics.points(block_x+border_thickness-1,(y-1)*block_size+block_size+border_thickness-1)
     end
+
+    love.graphics.setColor(1,0,0)
+    love.graphics.points(x*block_size-block_size/2+border_thickness-1,y*block_size-block_size/2+border_thickness-1)
+
     love.graphics.setPointSize(1)
 end
 
@@ -45,10 +49,48 @@ local function fill_grid(grid,w,h)
     end
 end
 
-local points   = {{1,1,1},{5,1,1},{1,5,1}}
-local coloring = {{1,0,0},{0,1,0},{0,0,1}}
+local function make_uv(u,v)
+    return (u+1)/3,(v+1)/4
+end
+
+local function unmake_uv(u,v)
+    local ox,oy = 1/3,1/4
+
+    local range_x = 3/1
+    local range_y = 4/2
+
+    return (u-ox)*range_x,(v-oy)*range_y
+end
+
+local function uv_range(u,v)
+    if u > 1 or u < 0 or v > 1 or v < 0 then
+        error("invalid UV")
+    end
+end
+
+local points   = {{85/10,147/10,1,make_uv(0,0)},{85/10,52/10,0,make_uv(1,0)},{180/10,147/10,1,make_uv(0,2)},{40,5,1,make_uv(1,2)}}
+local coloring = {{1,0,0},{0,1,0},{0,0,1},{0,1,1}}
+
+--local points   = {{5,1,1},{1,10,0.8},{10,15,0.5}}
+--local coloring = {{1,0,0},{0,1,0},{0,0,1}}
 
 local selected = 1
+
+local image,image_w,image_h
+function love.load()
+    image = love.image.newImageData("test_cube.png")
+    image_w,image_h = image:getDimensions()
+end
+
+local function draw_lines()
+    love.graphics.line(points[1][1]*block_size,points[1][2]*block_size,points[2][1]*block_size,points[2][2]*block_size)
+    love.graphics.line(points[2][1]*block_size,points[2][2]*block_size,points[3][1]*block_size,points[3][2]*block_size)
+    love.graphics.line(points[3][1]*block_size,points[3][2]*block_size,points[1][1]*block_size,points[1][2]*block_size)
+
+    love.graphics.line(points[2][1]*block_size,points[2][2]*block_size,points[3][1]*block_size,points[3][2]*block_size)
+    love.graphics.line(points[3][1]*block_size,points[3][2]*block_size,points[4][1]*block_size,points[4][2]*block_size)
+    love.graphics.line(points[4][1]*block_size,points[4][2]*block_size,points[2][1]*block_size,points[2][2]*block_size)
+end
 
 function love.draw()
     local grid = {
@@ -58,12 +100,27 @@ function love.draw()
     }
     fill_grid(grid,50,50)
 
-    make_triangle(points[1],points[2],points[3],nil,function(x,y,r,g,b)
-        set_grid(grid,x,y,{r,g,b})
+    make_triangle(points[1],points[2],points[3],nil,function(x,y,u,v)
+        local tex_x,tex_y = math.floor(u*image_w)%image_w,math.floor(v*image_h)%image_h
+        local r,g,b,a = image:getPixel(tex_x,tex_y)
+
+        --local u,v = unmake_uv(u,v)
+        --uv_range(u,v)
+
+        set_grid(grid,x+1,y+1,{r,g,b})
+    end)
+    make_triangle(points[2],points[3],points[4],nil,function(x,y,u,v)
+        local tex_x,tex_y = math.floor(u*image_w)%image_w,math.floor(v*image_h)%image_h
+        local r,g,b,a = image:getPixel(tex_x,tex_y)
+
+        --local u,v = unmake_uv(u,v)
+        --uv_range(u,v)
+
+        set_grid(grid,x+1,y+1,{r,g,b})
     end)
 
     local x,y = screen_to_grid(love.mouse.getPosition())
-    set_grid(grid,x,y,{1,0,0})
+    set_grid(grid,x,y,{1,0,0,0.2})
 
     for y,l in ipairs(grid) do
         for x,c in ipairs(l) do
@@ -74,13 +131,21 @@ function love.draw()
     for k,v in pairs(points) do
         local color = coloring[k]
         love.graphics.setColor(color[1],color[2],color[3])
-        love.graphics.circle("fill",v[1]*block_size-block_size/3,v[2]*block_size-block_size/3,10)
+        love.graphics.circle("fill",v[1]*block_size,v[2]*block_size,10)
     end
 
     local w,h = love.graphics.getDimensions()
     local selected_color = coloring[selected]
+
     love.graphics.setColor(selected_color[1],selected_color[2],selected_color[3])
-    love.graphics.print(("selected: %d"):format(selected),1,h-20)
+    love.graphics.print(("selected: %d"):format(selected),6,h-20)
+
+    love.graphics.setLineWidth(3)
+    love.graphics.setColor(0.5,0.5,0.5,0.5)
+    draw_lines()
+    love.graphics.setLineWidth(1)
+    love.graphics.setColor(1,1,1,0.1)
+    draw_lines()
 end
 
 function love.wheelmoved(dx,dy)
